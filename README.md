@@ -14,33 +14,36 @@ are **not** here. They stay on crates.io. Cross-registry dependencies point one
 way: packages here depend on those crates.io libraries at the exact train
 version, never the reverse.
 
-See [organization#951](https://github.com/phoxal/organization/issues/951) for
-the design this implements.
+> **Status: being stood up.** The registry is live and serving, but holds no
+> crates yet. The framework is not yet publishing to it, and the `phoxal` CLI
+> does not yet install from it. Everything below marked *planned* describes
+> where this is going, not what works today. See <https://phoxal.com> for
+> Phoxal documentation.
 
 ## Consuming it
 
-Nothing needs to be configured in a robot project. The `phoxal` CLI injects the
-index for its own `cargo install` invocations:
+Reads are anonymous; no token exists and none is needed.
+
+*Planned:* nothing will need configuring in a robot project, because the
+`phoxal` CLI will inject the index for its own `cargo install` invocations:
 
 ```
 cargo install --registry phoxal --config 'registries.phoxal.index="sparse+https://phoxal.github.io/registry/"' ...
 ```
 
-Reads are anonymous; no token exists and none is needed.
-
 ## Publishing
 
-**Publication is CI-owned and one-way.** The framework release workflow packages
-each executable with `cargo package`, runs `margo add`, commits, and lets Pages
-deploy. Nothing is published by hand.
+*Planned:* **publication will be CI-owned and one-way.** The framework release
+workflow will package each executable with `cargo package`, run `margo add`,
+commit, and let Pages deploy. Nothing is ever published by hand.
 
-Two rules hold without exception:
+Two rules hold without exception, and are enforced today:
 
 1. **Versions are immutable.** A version, once published, is never overwritten,
    re-uploaded, or `margo rm`'d. An incorrect train is superseded by a new patch
    train. This repository's git history is the audit trail, which only works if
    history is append-only.
-2. **Nothing here is published to crates.io.** Executable packages declare
+2. **Nothing here is published to crates.io.** Executable packages will declare
    `publish = ["phoxal"]`, so an ordinary `cargo publish` cannot reach crates.io
    by accident.
 
