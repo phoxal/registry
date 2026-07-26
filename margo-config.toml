@@ -1,0 +1,7 @@
+version = "1"
+base_url = "https://phoxal.github.io/registry/"
+auth_required = false
+
+[html]
+enabled = true
+suggested_registry_name = "phoxal"

@@ -1,0 +1,96 @@
+name: immutability
+
+# A published version is never overwritten, re-uploaded, or removed: the git
+# history of this repository is the audit trail for what the framework shipped,
+# and that only means something if history is append-only.
+#
+# Adding is always allowed. Everything else under `crates/` and `index/` is not:
+#
+#   crates/  .crate files are the artifacts themselves - add only.
+#   index/   a new version appends a line to its crate's index file, so these
+#            may grow but never lose or rewrite a line.
+#
+# An incorrect train is superseded by a new patch train, never by a force-push.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  append-only:
+    name: published versions are immutable
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Determine the range to inspect
+        id: range
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            base="${{ github.event.pull_request.base.sha }}"
+            head="${{ github.event.pull_request.head.sha }}"
+          else
+            base="${{ github.event.before }}"
+            head="${{ github.sha }}"
+            # A new branch, or a force-push that rewrote history away, leaves no
+            # usable base. Fall back to the first parent so the push is still
+            # inspected rather than silently skipped.
+            if [[ "$base" == "0000000000000000000000000000000000000000" ]] \
+              || ! git cat-file -e "$base^{commit}" 2>/dev/null; then
+              base="$(git rev-parse "$head^" 2>/dev/null || echo "")"
+            fi
+          fi
+          echo "base=$base" >> "$GITHUB_OUTPUT"
+          echo "head=$head" >> "$GITHUB_OUTPUT"
+
+      - name: Reject rewritten or removed artifacts
+        shell: bash
+        env:
+          BASE: ${{ steps.range.outputs.base }}
+          HEAD: ${{ steps.range.outputs.head }}
+        run: |
+          set -euo pipefail
+          if [[ -z "$BASE" ]]; then
+            echo "no base commit to compare against; nothing to verify"
+            exit 0
+          fi
+
+          violations=0
+
+          # `.crate` artifacts: additions only.
+          while read -r status path; do
+            [[ -z "${path:-}" ]] && continue
+            echo "::error file=$path::a published .crate was ${status/M/modified}${status/D/deleted}; published versions are immutable"
+            violations=1
+          done < <(git diff --name-status --diff-filter=MDR "$BASE" "$HEAD" -- crates/)
+
+          # Index files: may gain lines, never lose or rewrite one.
+          while read -r path; do
+            [[ -z "${path:-}" ]] && continue
+            removed="$(git diff --numstat "$BASE" "$HEAD" -- "$path" | cut -f2)"
+            if [[ "${removed:-0}" != "0" ]]; then
+              echo "::error file=$path::$removed index line(s) were removed or rewritten; the index is append-only"
+              violations=1
+            fi
+          done < <(git diff --name-only "$BASE" "$HEAD" -- index/)
+
+          while read -r path; do
+            [[ -z "${path:-}" ]] && continue
+            echo "::error file=$path::an index file was deleted; published versions are immutable"
+            violations=1
+          done < <(git diff --name-only --diff-filter=D "$BASE" "$HEAD" -- index/)
+
+          if [[ "$violations" != "0" ]]; then
+            echo
+            echo "Supersede an incorrect train with a new patch train instead."
+            exit 1
+          fi
+          echo "append-only: no published version was rewritten or removed"
