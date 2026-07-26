@@ -44,9 +44,19 @@ Two rules hold without exception:
    `publish = ["phoxal"]`, so an ordinary `cargo publish` cannot reach crates.io
    by accident.
 
-The publish workflow enforces rule 1 by refusing any `.crate` path that already
-exists. If you are reading this because that check failed, the answer is a new
-patch train, not a force-push.
+Rule 1 is enforced in two layers, because a workflow alone cannot stop history
+being rewritten out from under it:
+
+- **Content** - the required `immutability` workflow rejects any push or PR that
+  modifies or deletes a file under `crates/`, or that removes or rewrites a line
+  in an index file. Adding is always allowed.
+- **History** - the `append-only history` repository ruleset blocks
+  force-pushes and deletion of the default branch, so the audit trail can only
+  ever grow. Verified: a rewrite attempt is refused with "Cannot force-push to
+  this branch".
+
+If you are reading this because one of those refused your push, the answer is a
+new patch train, not a way around them.
 
 ## Layout
 
