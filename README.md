@@ -53,7 +53,13 @@ patch train, not a force-push.
 | Path | What it is |
 |---|---|
 | `config.json` | registry endpoint description Cargo reads first |
-| `index/` | the sparse index, one file per crate |
-| `crates/` | the published `.crate` source packages |
+| `ph/ox/<crate>` and friends | the sparse index. Cargo's own prefix layout, at the repository root: `<c1c2>/<c3c4>/<name>` for names of four characters or more, and `1/`, `2/`, `3/<c>/` for shorter ones. One file per crate, one JSON line per version. |
+| `crates/<c1c2>/<c3c4>/<name>/<version>.crate` | the published source packages |
 | `index.html`, `assets/` | the human-browsable crate listing margo generates |
 | `margo-config.toml` | margo's own settings; `base_url` must match the Pages URL |
+
+The index living at the root, rather than under an `index/` prefix, is Cargo's
+sparse-registry convention: `config.json`'s `dl` template and the index paths
+are both resolved relative to the base URL. Anything that is not one of the
+metadata files above is index content, which is how the immutability workflow
+tells them apart.

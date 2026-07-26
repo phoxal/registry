@@ -4,11 +4,16 @@ name: immutability
 # history of this repository is the audit trail for what the framework shipped,
 # and that only means something if history is append-only.
 #
-# Adding is always allowed. Everything else under `crates/` and `index/` is not:
+# Adding is always allowed. Everything else is not:
 #
-#   crates/  .crate files are the artifacts themselves - add only.
-#   index/   a new version appends a line to its crate's index file, so these
-#            may grow but never lose or rewrite a line.
+#   crates/**   the .crate artifacts themselves - add only, never rewritten.
+#   index files a new version appends a JSON line to its crate's index file, so
+#               these may grow but never lose or rewrite a line.
+#
+# The sparse index lives at the repository ROOT in Cargo's prefix layout
+# (`ph/ox/phoxal-service-drive`, `3/a/abc`, ...), not under an `index/` prefix,
+# so index files are identified by exclusion: anything that is not one of the
+# known metadata paths below is index content.
 #
 # An incorrect train is superseded by a new patch train, never by a force-push.
 
@@ -63,30 +68,49 @@ jobs:
             exit 0
           fi
 
+          # Repository metadata, margo's generated UI, and this workflow itself
+          # are ordinary files: they may change freely. Everything else at the
+          # root is sparse-index content.
+          is_index_path() {
+            case "$1" in
+              crates/*) return 1 ;;
+              config.json|margo-config.toml|index.html|README.md|.nojekyll|.gitignore) return 1 ;;
+              assets/*|.github/*) return 1 ;;
+              *) return 0 ;;
+            esac
+          }
+
           violations=0
 
-          # `.crate` artifacts: additions only.
-          while read -r status path; do
+          # `.crate` artifacts: additions only. Renames count as a rewrite of
+          # the old path, so include R alongside M and D.
+          while read -r status path rest; do
             [[ -z "${path:-}" ]] && continue
-            echo "::error file=$path::a published .crate was ${status/M/modified}${status/D/deleted}; published versions are immutable"
+            case "$status" in
+              M*) verb="modified" ;;
+              D*) verb="deleted" ;;
+              R*) verb="renamed" ;;
+              *)  verb="changed" ;;
+            esac
+            echo "::error file=$path::a published .crate was $verb; published versions are immutable"
             violations=1
           done < <(git diff --name-status --diff-filter=MDR "$BASE" "$HEAD" -- crates/)
 
-          # Index files: may gain lines, never lose or rewrite one.
+          # Index files: may gain lines, never lose or rewrite one, never vanish.
           while read -r path; do
             [[ -z "${path:-}" ]] && continue
+            is_index_path "$path" || continue
+            if [[ -z "$(git ls-tree -r --name-only "$HEAD" -- "$path")" ]]; then
+              echo "::error file=$path::an index file was deleted; published versions are immutable"
+              violations=1
+              continue
+            fi
             removed="$(git diff --numstat "$BASE" "$HEAD" -- "$path" | cut -f2)"
             if [[ "${removed:-0}" != "0" ]]; then
               echo "::error file=$path::$removed index line(s) were removed or rewritten; the index is append-only"
               violations=1
             fi
-          done < <(git diff --name-only "$BASE" "$HEAD" -- index/)
-
-          while read -r path; do
-            [[ -z "${path:-}" ]] && continue
-            echo "::error file=$path::an index file was deleted; published versions are immutable"
-            violations=1
-          done < <(git diff --name-only --diff-filter=D "$BASE" "$HEAD" -- index/)
+          done < <(git diff --name-only "$BASE" "$HEAD")
 
           if [[ "$violations" != "0" ]]; then
             echo
