@@ -1,0 +1,1 @@
+{"name":"phoxal-service-asset","vers":"0.41.3","deps":[{"name":"phoxal","req":"=0.41.3","features":[],"optional":false,"default_features":true,"kind":"normal","registry":"https://github.com/rust-lang/crates.io-index"}],"cksum":"72c0827cf6edfd03b4a569a6d8fe83f4ce74a6d66b8c051e311640e5315b919e","features":{},"yanked":false,"v":2,"rust_version":"1.85.0"}
