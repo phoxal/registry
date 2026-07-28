@@ -14,18 +14,17 @@ are **not** here. They stay on crates.io. Cross-registry dependencies point one
 way: packages here depend on those crates.io libraries at the exact train
 version, never the reverse.
 
-> **Status: being stood up.** The registry is live and serving, but holds no
-> crates yet. The framework is not yet publishing to it, and the `phoxal` CLI
-> does not yet install from it. Everything below marked *planned* describes
-> where this is going, not what works today. See <https://phoxal.com> for
-> Phoxal documentation.
+The registry is live and carries every official executable package from each
+published framework train. The framework release workflow publishes it and the
+`phoxal` CLI installs from it. See <https://phoxal.com> for Phoxal
+documentation.
 
 ## Consuming it
 
 Reads are anonymous; no token exists and none is needed.
 
-*Planned:* nothing will need configuring in a robot project, because the
-`phoxal` CLI will inject the index for its own `cargo install` invocations:
+Nothing needs configuring in a robot project. The `phoxal` CLI injects the
+index for its own exact-version `cargo install` invocations:
 
 ```
 cargo install --registry phoxal --config 'registries.phoxal.index="sparse+https://phoxal.github.io/registry/"' ...
@@ -33,8 +32,8 @@ cargo install --registry phoxal --config 'registries.phoxal.index="sparse+https:
 
 ## Publishing
 
-*Planned:* **publication will be CI-owned and one-way.** The framework release
-workflow will package each executable with `cargo package`, run `margo add`,
+**Publication is CI-owned and one-way.** The framework release
+workflow packages each executable with `cargo package`, runs `margo add`,
 commit, and let Pages deploy. Nothing is ever published by hand.
 
 Two rules hold without exception, and are enforced today:
@@ -43,7 +42,7 @@ Two rules hold without exception, and are enforced today:
    re-uploaded, or `margo rm`'d. An incorrect train is superseded by a new patch
    train. This repository's git history is the audit trail, which only works if
    history is append-only.
-2. **Nothing here is published to crates.io.** Executable packages will declare
+2. **Nothing here is published to crates.io.** Executable packages declare
    `publish = ["phoxal"]`, so an ordinary `cargo publish` cannot reach crates.io
    by accident.
 
