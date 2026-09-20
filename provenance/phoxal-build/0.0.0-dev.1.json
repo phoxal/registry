@@ -1,0 +1,72 @@
+{
+  "archive": "crates/ph/ox/phoxal-build/phoxal-build-0.0.0-dev.1.crate",
+  "archive_sha256": "d27b4fd00046fcb287077ce4ac1c842baa706d12429d6ec1baed58ef783404dc",
+  "assets": [
+    {
+      "path": "Cargo.lock",
+      "sha256": "b49eca9690813d97fcb17adfd1bccd0fc32501a46643742e47adac7e4ae26be3",
+      "size": 12615
+    },
+    {
+      "path": "Cargo.toml",
+      "sha256": "508da48ed7d29d831993676cf30ec2195b886b24ed0f36d866c7750fa3a410d3",
+      "size": 1647
+    },
+    {
+      "path": "Cargo.toml.orig",
+      "sha256": "3c9b409356c978b2df564075cd7153253284686aa056198ee7c8dfcdf6eec5f8",
+      "size": 1110
+    },
+    {
+      "path": "README.md",
+      "sha256": "9394f2d2045ec9f4553f30079397428a356c1ef968277fc2b31bbf06d0d6473d",
+      "size": 787
+    },
+    {
+      "path": "proto/phoxal/port.proto",
+      "sha256": "94fd82407c16271974828680658ff15fc4f91c6101a10261a6d8a57560eb92f3",
+      "size": 298
+    },
+    {
+      "path": "src/lib.rs",
+      "sha256": "5bd15a77efbae13c1519723f0915dbb880f01201de1c046d26dd4213143f8235",
+      "size": 57554
+    }
+  ],
+  "kind": "library",
+  "name": "phoxal-build",
+  "publisher": "jBernavaPrah",
+  "source": {
+    "derived_files": [],
+    "digest": "7f4c1ed5b4d66e3367e1b7ea86b542834fee35a17576a3fbe94122b51e5e7cca",
+    "origin": "git",
+    "path": ".",
+    "preparation": "none",
+    "repository": "https://github.com/phoxal/framework.git",
+    "revision": "40bc9951eede6215e682fe6a99f3c3563d188a2f",
+    "staged_files": [
+      {
+        "bytes": 1733,
+        "path": ".cargo/config.toml",
+        "sha256": "8f20bdda8918920ad6b8ead32a7c774c34adeb646421b50ae04fc651e35ed85a"
+      },
+      {
+        "bytes": 129225,
+        "path": "Cargo.lock",
+        "sha256": "868ffc079a06ad2967dffcee5a4aaf8da936611bb9e42d831466e3234beb8412"
+      },
+      {
+        "bytes": 4127,
+        "path": "Cargo.toml",
+        "sha256": "2bafee7da8ab4ed38ca4f2504ca273e1cd170bd0316e92fa0928f544bf8119a9"
+      },
+      {
+        "bytes": 1110,
+        "path": "phoxal/build-support/Cargo.toml",
+        "sha256": "3c9b409356c978b2df564075cd7153253284686aa056198ee7c8dfcdf6eec5f8"
+      }
+    ],
+    "subdirectory": "phoxal/build-support"
+  },
+  "version": "0.0.0-dev.1"
+}
