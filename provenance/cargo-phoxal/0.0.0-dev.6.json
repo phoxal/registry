@@ -1,0 +1,207 @@
+{
+  "archive": "crates/ca/rg/cargo-phoxal/0.0.0-dev.6.crate",
+  "archive_sha256": "ebdf025561fe403c23944b761e0ad052b77c17a7588bb62766e2cd04f74d4f2d",
+  "assets": [
+    {
+      "path": "Cargo.lock",
+      "sha256": "b6a12ed9e216edb143e21633b39ed24c3e42bb7f3a97f4c2c54ec0eb97dbd43c",
+      "size": 66723
+    },
+    {
+      "path": "Cargo.toml",
+      "sha256": "1ad48768cd5b4f41e2c7b2c13f9ea50a8e49e68dd77e91b44288e7a4754ade41",
+      "size": 2436
+    },
+    {
+      "path": "Cargo.toml.orig",
+      "sha256": "ff7b9d26cf7c8e6e75801c63afc4dfda5a10b4e13db8103e9e65fb15b9fa621f",
+      "size": 1505
+    },
+    {
+      "path": "LICENSE",
+      "sha256": "4df3c306dddaaf4baffdff5ca820cc679ac8cd6dc263c6a74517783e42fa7a3b",
+      "size": 34522
+    },
+    {
+      "path": "README.md",
+      "sha256": "a3e699200f1ac42ebc07ae674f83659389263bc0cfa3c6a7627c65111d53fa59",
+      "size": 6981
+    },
+    {
+      "path": "src/main.rs",
+      "sha256": "65df6bb2823a49f4965cc9a500740da41e4f1ff4aa8ba995d66244080515555f",
+      "size": 45297
+    },
+    {
+      "path": "src/project/artifact.rs",
+      "sha256": "57161e676453aaf7c9a79a21cc3b7be777a06b379eb801cd99c95c7679b474c8",
+      "size": 23296
+    },
+    {
+      "path": "src/project/artifact/connections.rs",
+      "sha256": "0b1c72c444dab0421ca9ed6704b480f6241a6c8ac4a15e4bd98cc0caf23f36e8",
+      "size": 11128
+    },
+    {
+      "path": "src/project/bundle.rs",
+      "sha256": "d191c956b678322efe58bd62945afdd2569ed04e7e25386178d25c1d76c111de",
+      "size": 136318
+    },
+    {
+      "path": "src/project/cargo.rs",
+      "sha256": "49ffc69eed8cdf0c0296a2a6949fb814de0522d487be7328f63add5104065a45",
+      "size": 25638
+    },
+    {
+      "path": "src/project/discovery.rs",
+      "sha256": "4ea466ad67fc23adcea6bf8dfdc21888c40b4126c046c1f16f4893f1fbd352d1",
+      "size": 4426
+    },
+    {
+      "path": "src/project/document.rs",
+      "sha256": "4ee3d397463bfe52393274e8ee980de8b7931df4b81807364dfde7acdfed52f7",
+      "size": 15336
+    },
+    {
+      "path": "src/project/error.rs",
+      "sha256": "da5bca6f4e8dba8bff721d8ebce1d48a420d58d8197e20b1d69c45fb2f06f579",
+      "size": 33349
+    },
+    {
+      "path": "src/project/file_lock.rs",
+      "sha256": "f519be6cbd2227d42f011ea3a086b7d534521979e9c1208b0b539286b0f74e06",
+      "size": 751
+    },
+    {
+      "path": "src/project/mod.rs",
+      "sha256": "ff5453cd9f78035fba0d19bee2fec3d9920c3f54cae9b407a793f39b8b419d35",
+      "size": 26899
+    },
+    {
+      "path": "src/project/preparation.rs",
+      "sha256": "cf0b619c8670b3ece3cd98b124fb4c5d9c646c1e803f368c71995ed794c05d1c",
+      "size": 48167
+    },
+    {
+      "path": "src/project/publication.rs",
+      "sha256": "523d379238dc2dea6519454864500b353694971ab5eae72d7da8f462b9bf3454",
+      "size": 160794
+    },
+    {
+      "path": "src/project/scenario/case_host.rs",
+      "sha256": "f11b7c71a4260ee2e7a4730a5d6df05eb657f84a96eeebe3f6c423ad9e9dc308",
+      "size": 25877
+    },
+    {
+      "path": "src/project/scenario/discovery.rs",
+      "sha256": "587ac3284ffba937c98fce8aa14654764d0e990ea3a5f117a6c560fc1f07024a",
+      "size": 8842
+    },
+    {
+      "path": "src/project/scenario/harness.rs",
+      "sha256": "1daef2388a3e614b8b0fd4b73f978605b0acfd7b60d44397e8645d940c95e6d6",
+      "size": 5666
+    },
+    {
+      "path": "src/project/scenario/mod.rs",
+      "sha256": "5715328f5e1b86e19b9ab9c71364b1cd7c9ab002a5eaf4ef72d8112c387fafbc",
+      "size": 824
+    },
+    {
+      "path": "src/project/scenario/run.rs",
+      "sha256": "dcb3bfa254ef0d59d465f9c2662068f268e772448225181da8052b4ce86eb9b3",
+      "size": 30159
+    },
+    {
+      "path": "src/project/selection.rs",
+      "sha256": "eb3fc1e2a4a2e9c02461fe57b9a256a44706144258269a530fdd3e9114f417c3",
+      "size": 32161
+    },
+    {
+      "path": "src/project/simulation.rs",
+      "sha256": "2983729b02df6eb0d6bb60953c3a673526322c87209d943b566bfa13e47386df",
+      "size": 77428
+    },
+    {
+      "path": "src/project/submission.rs",
+      "sha256": "5af9e28cdc2423f075b3fcbbede734f6b622505c655ba3c6f674f7e992e00b71",
+      "size": 37925
+    },
+    {
+      "path": "src/project/tests/mod.rs",
+      "sha256": "54757bc7707c7c965dc8d3b6608246cca89932b11077649865e43d61295f9190",
+      "size": 232
+    },
+    {
+      "path": "src/project/tests/project.rs",
+      "sha256": "4a67c84fb9c2e30d8aadb894233789ca801f752543e574250f9c02921e74226a",
+      "size": 58354
+    },
+    {
+      "path": "src/project/tests/scenario_prep.rs",
+      "sha256": "7dfc704799e61ad0858a262bc7cbb34b33abbc6d98d6273139c45d891cd6909f",
+      "size": 30286
+    },
+    {
+      "path": "src/project/tests/source_digest.rs",
+      "sha256": "237c1d199890e9d8c15527e13407fbb56eb37a526ae8d6a508b564ca4372539d",
+      "size": 809
+    },
+    {
+      "path": "src/project/validation.rs",
+      "sha256": "495bced0952084221fbd38f4008479b8033076281581e3fc410090beeace354d",
+      "size": 7866
+    }
+  ],
+  "kind": "tool",
+  "name": "cargo-phoxal",
+  "publisher": "jBernavaPrah",
+  "source": {
+    "derived_files": [],
+    "digest": "dc56440a42c3fa46f7bba89170fa6a3fb40a8ab001d8737c023e2501957615eb",
+    "origin": "git",
+    "path": ".",
+    "preparation": "none",
+    "repository": "https://github.com/phoxal/framework.git",
+    "revision": "0066ef3047155792bd69f0454127f26da2cd5092",
+    "staged_files": [
+      {
+        "bytes": 1733,
+        "path": ".cargo/config.toml",
+        "sha256": "8f20bdda8918920ad6b8ead32a7c774c34adeb646421b50ae04fc651e35ed85a"
+      },
+      {
+        "bytes": 129225,
+        "path": "Cargo.lock",
+        "sha256": "254d84a7f9b7171be677148d64bcf217f31437ef9c50204d7a34f8262feb9559"
+      },
+      {
+        "bytes": 4119,
+        "path": "Cargo.toml",
+        "sha256": "9a3a5082e1a88acc2b11d98337319fd394aa500f3ddce95244a697b38ea9360b"
+      },
+      {
+        "bytes": 7790,
+        "path": "phoxal/Cargo.toml",
+        "sha256": "ccc36399225e3df7daa78843e8f508b994483e98674446392b37264f9fc1a6c7"
+      },
+      {
+        "bytes": 1066,
+        "path": "phoxal/build-support/Cargo.toml",
+        "sha256": "03033a2b6c824d5a885134de4ef0f22c64a97ffcb27efcbd13ff8f6b2cb02d81"
+      },
+      {
+        "bytes": 1505,
+        "path": "phoxal/cargo/Cargo.toml",
+        "sha256": "ff7b9d26cf7c8e6e75801c63afc4dfda5a10b4e13db8103e9e65fb15b9fa621f"
+      },
+      {
+        "bytes": 964,
+        "path": "phoxal/macros/Cargo.toml",
+        "sha256": "3d34eb3ff35fcab6f1447f7cf814a3a35a09da9399c74f6372b2ab0fdc1b81b0"
+      }
+    ],
+    "subdirectory": "phoxal/cargo"
+  },
+  "version": "0.0.0-dev.6"
+}
