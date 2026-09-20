@@ -121,7 +121,16 @@ def render(base: str, head: str, output: Path) -> list[Path]:
         current_bytes = admission._git_blob(head, archive_path)
         if current_bytes is None:
             raise EvidenceError(f"head tree is missing {archive_path}")
-        current = admission.inspect_archive(current_bytes, name, version)
+        provenance_path = admission.provenance_path(name, version)
+        provenance_bytes = admission._git_blob(head, provenance_path)
+        if provenance_bytes is None:
+            raise EvidenceError(f"head tree is missing {provenance_path}")
+        provenance = admission.parse_provenance(
+            provenance_bytes, provenance_path, name, version
+        )
+        current = admission.inspect_archive(
+            current_bytes, name, version, provenance["kind"]
+        )
         package = output / f"{name}-{version}"
         current_root = package / "current"
         previous_root = package / "previous"

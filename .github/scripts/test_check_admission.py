@@ -22,6 +22,7 @@ def make_archive(
     version: str = "0.1.0",
     kind: str = "service",
     include_lib: bool = True,
+    include_phoxal_metadata: bool = False,
     members: dict[str, bytes] | None = None,
 ) -> bytes:
     definition = b"name: example\n"
@@ -32,11 +33,11 @@ def make_archive(
         'edition = "2024"',
         'publish = ["phoxal"]',
         "",
-        "[package.metadata.phoxal]",
-        f'kind = "{kind}"',
-        'definition_root = "service.yaml"',
-        "",
     ]
+    if include_phoxal_metadata:
+        manifest_lines.extend(
+            ["[package.metadata.phoxal]", f'kind = "{kind}"', ""]
+        )
     if include_lib:
         manifest_lines.extend(
             [
@@ -117,7 +118,9 @@ def valid_provenance(
 class ArchiveTests(unittest.TestCase):
     def test_valid_service_archive_and_inventory(self) -> None:
         archive = make_archive()
-        report = admission.inspect_archive(archive, "example-service", "0.1.0")
+        report = admission.inspect_archive(
+            archive, "example-service", "0.1.0", "service"
+        )
         self.assertEqual(report.kind, "service")
         self.assertIn("src/lib.rs", report.files)
         self.assertEqual(
@@ -155,7 +158,9 @@ class ArchiveTests(unittest.TestCase):
 
     def test_archive_identity_must_match_path(self) -> None:
         with self.assertRaisesRegex(admission.AdmissionError, "identity|outside"):
-            admission.inspect_archive(make_archive(name="other"), "example-service", "0.1.0")
+            admission.inspect_archive(
+                make_archive(name="other"), "example-service", "0.1.0", "service"
+            )
 
     def test_archive_rejects_symlink(self) -> None:
         output = io.BytesIO()
@@ -183,13 +188,22 @@ class ArchiveTests(unittest.TestCase):
     def test_service_requires_lib_and_bin(self) -> None:
         with self.assertRaisesRegex(admission.AdmissionError, "both lib and bin"):
             admission.inspect_archive(
-                make_archive(include_lib=False), "example-service", "0.1.0"
+                make_archive(include_lib=False), "example-service", "0.1.0", "service"
             )
 
     def test_unknown_kind_is_rejected(self) -> None:
-        with self.assertRaisesRegex(admission.AdmissionError, "package.metadata"):
+        with self.assertRaisesRegex(admission.AdmissionError, "package kind"):
             admission.inspect_archive(
-                make_archive(kind="driver"), "example-service", "0.1.0"
+                make_archive(kind="driver"), "example-service", "0.1.0", "driver"
+            )
+
+    def test_new_archive_rejects_custom_phoxal_metadata(self) -> None:
+        with self.assertRaisesRegex(admission.AdmissionError, "must not declare"):
+            admission.inspect_archive(
+                make_archive(include_phoxal_metadata=True),
+                "example-service",
+                "0.1.0",
+                "service",
             )
 
 
@@ -254,7 +268,9 @@ class RecordTests(unittest.TestCase):
 
     def test_provenance_checks_archive_and_assets(self) -> None:
         archive = make_archive()
-        report = admission.inspect_archive(archive, "example-service", "0.1.0")
+        report = admission.inspect_archive(
+            archive, "example-service", "0.1.0", "service"
+        )
         path = admission.canonical_archive_path("example-service", "0.1.0")
         data = valid_provenance(
             "example-service", "0.1.0", "service", path, archive, report
@@ -311,7 +327,7 @@ class RangeTests(unittest.TestCase):
         Path(index_path).write_text(
             json.dumps(valid_index(name, version, archive), separators=(",", ":")) + "\n"
         )
-        report = admission.inspect_archive(archive, name, version)
+        report = admission.inspect_archive(archive, name, version, "service")
         prov_path = Path(admission.provenance_path(name, version))
         prov_path.parent.mkdir(parents=True, exist_ok=True)
         prov_path.write_bytes(
@@ -365,7 +381,7 @@ class RangeTests(unittest.TestCase):
         Path(index_path).write_text(
             "\n".join(json.dumps(item, separators=(",", ":")) for item in records) + "\n"
         )
-        report = admission.inspect_archive(archive, name, version)
+        report = admission.inspect_archive(archive, name, version, "service")
         provenance = Path(admission.provenance_path(name, version))
         provenance.parent.mkdir(parents=True, exist_ok=True)
         provenance.write_bytes(

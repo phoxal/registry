@@ -113,7 +113,6 @@ class ArchiveReport:
     kind: str
     files: dict[str, bytes]
     package: dict[str, Any]
-    phoxal_metadata: dict[str, Any]
     dependencies: dict[str, Any]
 
     @property
@@ -295,17 +294,21 @@ def _validate_kind_shape(
     kind: str,
     manifest: Mapping[str, Any],
     files: Mapping[str, bytes],
-    metadata: Mapping[str, Any],
     dependencies: Mapping[str, Any],
     path: str,
 ) -> None:
     has_lib, has_bins, has_proc_macro = _target_shape(manifest)
-    if kind == "service" and not (has_lib and has_bins):
-        raise AdmissionError(f"{path} service packages must expose both lib and bin")
+    if kind == "service":
+        if not (has_lib and has_bins):
+            raise AdmissionError(f"{path} service packages must expose both lib and bin")
+        if "service.yaml" not in files:
+            raise AdmissionError(f"{path} service packages must contain root service.yaml")
     if kind == "component":
         generated = "_cargo/lib.rs" in files
         if not has_lib:
             raise AdmissionError(f"{path} component packages must expose a lib target")
+        if "component.yaml" not in files:
+            raise AdmissionError(f"{path} component packages must contain root component.yaml")
         if not has_bins and not generated:
             raise AdmissionError(
                 f"{path} targetless component data must contain the staged _cargo/lib.rs"
@@ -313,10 +316,8 @@ def _validate_kind_shape(
     elif kind == "preset":
         if has_bins:
             raise AdmissionError(f"{path} configuration presets cannot expose a bin")
-        if not any(key in metadata for key in ("implementation", "definition_root")):
-            raise AdmissionError(
-                f"{path} presets need implementation or definition_root metadata"
-            )
+        if "service.yaml" not in files:
+            raise AdmissionError(f"{path} presets must contain root service.yaml")
         if not any(
             any(item["table"] == "dependencies" for item in specs)
             for specs in dependencies.values()
@@ -393,7 +394,12 @@ def extract_archive_files(
     return files
 
 
-def inspect_archive(archive: bytes, expected_name: str, expected_version: str) -> ArchiveReport:
+def inspect_archive(
+    archive: bytes,
+    expected_name: str,
+    expected_version: str,
+    expected_kind: str | None = None,
+) -> ArchiveReport:
     """Inspect one current Cargo archive without executing submitted code."""
 
     files = extract_archive_files(archive, expected_name, expected_version)
@@ -419,45 +425,28 @@ def inspect_archive(archive: bytes, expected_name: str, expected_version: str) -
             "registry packages must declare publish = [\"phoxal\"] in the normalized manifest"
         )
     metadata = _metadata_table(package, "Cargo.toml")
-    kind = metadata.get("kind")
+    if expected_kind is None:
+        kind = metadata.get("kind")
+    else:
+        kind = expected_kind
+        if metadata:
+            raise AdmissionError(
+                "Cargo.toml must not declare package.metadata.phoxal; "
+                "the reviewed provenance and standard package structure own package classification"
+            )
     if not isinstance(kind, str) or kind not in KNOWN_KINDS:
         raise AdmissionError(
-            "Cargo.toml package.metadata.phoxal.kind must be one of "
+            "package kind must be one of "
             + ", ".join(sorted(KNOWN_KINDS))
         )
-    for key in ("definition_root", "definition"):
-        if key in metadata:
-            definition = _validate_relative_path(metadata[key], f"phoxal {key}")
-            if definition not in files:
-                raise AdmissionError(f"phoxal {key} {definition!r} is not in the archive")
-    assets = metadata.get("assets", [])
-    if assets is None:
-        assets = []
-    if not isinstance(assets, list):
-        raise AdmissionError("phoxal assets metadata must be a list")
-    seen_assets: set[str] = set()
-    for item in assets:
-        asset_path = item if isinstance(item, str) else item.get("path") if isinstance(item, Mapping) else None
-        asset_path = _validate_relative_path(asset_path, "phoxal asset")
-        if asset_path in seen_assets:
-            raise AdmissionError(f"phoxal asset {asset_path!r} is listed twice")
-        seen_assets.add(asset_path)
-        if asset_path not in files:
-            raise AdmissionError(f"phoxal asset {asset_path!r} is not in the archive")
-        if isinstance(item, Mapping) and "sha256" in item:
-            digest = _validate_sha256(item["sha256"], f"phoxal asset {asset_path}")
-            actual = hashlib.sha256(files[asset_path]).hexdigest()
-            if digest != actual:
-                raise AdmissionError(f"phoxal asset {asset_path!r} checksum does not match")
     dependencies = _validate_dependencies(manifest, "Cargo.toml")
-    _validate_kind_shape(kind, manifest, files, metadata, dependencies, "Cargo.toml")
+    _validate_kind_shape(kind, manifest, files, dependencies, "Cargo.toml")
     return ArchiveReport(
         name=name,
         version=version,
         kind=kind,
         files=files,
         package=package,
-        phoxal_metadata=metadata,
         dependencies=dependencies,
     )
 
@@ -569,6 +558,32 @@ def validate_index_record(
             raise AdmissionError(f"{index_path} {key} must be an object when present")
 
 
+def parse_provenance(
+    data: bytes,
+    path: str,
+    expected_name: str,
+    expected_version: str,
+) -> dict[str, Any]:
+    """Parse the reviewed package identity and kind before archive inspection."""
+
+    try:
+        record = json.loads(data)
+    except json.JSONDecodeError as error:
+        raise AdmissionError(f"{path} is malformed JSON: {error}") from error
+    if not isinstance(record, Mapping):
+        raise AdmissionError(f"{path} must contain a JSON object")
+    if record.get("name") != expected_name or record.get(
+        "version", record.get("vers")
+    ) != expected_version:
+        raise AdmissionError(f"{path} package identity does not match its path")
+    kind = record.get("kind")
+    if not isinstance(kind, str) or kind not in KNOWN_KINDS:
+        raise AdmissionError(
+            f"{path} package kind must be one of " + ", ".join(sorted(KNOWN_KINDS))
+        )
+    return dict(record)
+
+
 def validate_provenance(
     data: bytes,
     path: str,
@@ -582,14 +597,7 @@ def validate_provenance(
     expected_path = provenance_path(archive.name, archive.version)
     if path != expected_path:
         raise AdmissionError(f"provenance path must be {expected_path!r}")
-    try:
-        record = json.loads(data)
-    except json.JSONDecodeError as error:
-        raise AdmissionError(f"{path} is malformed JSON: {error}") from error
-    if not isinstance(record, Mapping):
-        raise AdmissionError(f"{path} must contain a JSON object")
-    if record.get("name") != archive.name or record.get("version", record.get("vers")) != archive.version:
-        raise AdmissionError(f"{path} package identity does not match the archive")
+    record = parse_provenance(data, path, archive.name, archive.version)
     if record.get("kind") != archive.kind:
         raise AdmissionError(f"{path} package kind does not match Cargo.toml")
     if record.get("archive", record.get("archive_path")) != archive_path:
@@ -915,11 +923,19 @@ def validate_range(base: str, head: str) -> list[Problem]:
                 if is_new and archive_bytes is None:
                     raise AdmissionError(f"{archive_path} is missing for the new index record")
                 if is_new:
-                    archive_report = inspect_archive(archive_bytes, name, version)  # type: ignore[arg-type]
                     provenance = provenance_path(name, version)
                     provenance_bytes = head_files.get(provenance)
                     if provenance_bytes is None:
                         raise AdmissionError(f"{provenance} is required for a reviewed package")
+                    provenance_record = parse_provenance(
+                        provenance_bytes, provenance, name, version
+                    )
+                    archive_report = inspect_archive(
+                        archive_bytes,  # type: ignore[arg-type]
+                        name,
+                        version,
+                        provenance_record["kind"],
+                    )
                     owner_path = ownership_path(name)
                     owner_bytes = head_files.get(owner_path)
                     owner_record: dict[str, Any] | None = None
@@ -988,7 +1004,12 @@ def validate_range(base: str, head: str) -> list[Problem]:
             problems.append(Problem(path, f"{archive_path} is missing for provenance"))
             continue
         try:
-            report = inspect_archive(archive_bytes, name, version)
+            provenance_record = parse_provenance(
+                head_files[path], path, name, version
+            )
+            report = inspect_archive(
+                archive_bytes, name, version, provenance_record["kind"]
+            )
             owner_path = ownership_path(name)
             owner = head_files.get(owner_path)
             if owner is None:

@@ -30,7 +30,10 @@ Normal submission returns a pending-review result and pull request URL.
 
 Only a merged archive and index pair deployed through GitHub Pages is reported as published.
 
-Registry admission checks validate package identity, canonical Cargo paths, normalized manifest metadata, dependency registries, archive checksums, archive contents, package kind, assets, unsafe links, and source provenance.
+Registry admission checks validate package identity, canonical Cargo paths, dependency registries, archive checksums, archive contents, reviewed package kind, standard package structure, assets, unsafe links, and source provenance.
+
+Developers do not declare a `[package.metadata.phoxal]` table.
+The publication command records the selected role in immutable review provenance, while root `component.yaml` or `service.yaml` definitions and Cargo target shape independently validate that role.
 
 The archive and index are checked as the exact bytes that consumers will receive.
 

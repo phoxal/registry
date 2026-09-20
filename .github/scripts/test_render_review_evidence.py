@@ -52,7 +52,7 @@ class EvidenceTests(unittest.TestCase):
         Path(index_path).write_text(
             "".join(json.dumps(record, separators=(",", ":")) + "\n" for record in records)
         )
-        report = admission.inspect_archive(archive, name, version)
+        report = admission.inspect_archive(archive, name, version, "service")
         provenance = Path(admission.provenance_path(name, version))
         provenance.parent.mkdir(parents=True, exist_ok=True)
         provenance.write_bytes(
@@ -93,14 +93,12 @@ class EvidenceTests(unittest.TestCase):
         record = json.loads((package / "evidence.json").read_text())
         self.assertEqual(record["previous_version"], "0.1.0")
 
-    def test_new_version_can_diff_against_legacy_metadata(self) -> None:
+    def test_new_version_can_diff_against_legacy_archive_metadata(self) -> None:
         base = self.publish("0.1.0", b"first\n")
         archive_path = admission.canonical_archive_path("example-service", "0.1.0")
         archive = Path(archive_path).read_bytes()
         files = admission.extract_archive_files(archive, "example-service", "0.1.0")
-        manifest = files["Cargo.toml"].replace(
-            b'\n[package.metadata.phoxal]\nkind = "service"\n', b"\n"
-        )
+        manifest = files["Cargo.toml"] + b'\n[package.metadata.phoxal]\nkind = "service"\n'
         rebuilt = io.BytesIO()
         with tarfile.open(fileobj=rebuilt, mode="w:gz") as output:
             for relative, contents in sorted({**files, "Cargo.toml": manifest}.items()):
