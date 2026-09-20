@@ -301,8 +301,6 @@ def _validate_kind_shape(
     if kind == "service":
         if not (has_lib and has_bins):
             raise AdmissionError(f"{path} service packages must expose both lib and bin")
-        if "service.yaml" not in files:
-            raise AdmissionError(f"{path} service packages must contain root service.yaml")
     if kind == "component":
         generated = "_cargo/lib.rs" in files
         if not has_lib:

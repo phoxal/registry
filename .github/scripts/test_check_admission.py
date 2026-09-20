@@ -22,6 +22,7 @@ def make_archive(
     version: str = "0.1.0",
     kind: str = "service",
     include_lib: bool = True,
+    include_service_definition: bool = True,
     include_phoxal_metadata: bool = False,
     members: dict[str, bytes] | None = None,
 ) -> bytes:
@@ -56,9 +57,10 @@ def make_archive(
     )
     package_members = {
         "Cargo.toml": "\n".join(manifest_lines).encode(),
-        "service.yaml": definition,
         "src/main.rs": b"fn main() {}\n",
     }
+    if include_service_definition:
+        package_members["service.yaml"] = definition
     if include_lib:
         package_members["src/lib.rs"] = b"pub fn run() {}\n"
     if members:
@@ -190,6 +192,15 @@ class ArchiveTests(unittest.TestCase):
             admission.inspect_archive(
                 make_archive(include_lib=False), "example-service", "0.1.0", "service"
             )
+
+    def test_service_target_shape_does_not_require_custom_definition(self) -> None:
+        report = admission.inspect_archive(
+            make_archive(include_service_definition=False),
+            "example-service",
+            "0.1.0",
+            "service",
+        )
+        self.assertNotIn("service.yaml", report.files)
 
     def test_unknown_kind_is_rejected(self) -> None:
         with self.assertRaisesRegex(admission.AdmissionError, "package kind"):

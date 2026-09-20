@@ -33,7 +33,8 @@ Only a merged archive and index pair deployed through GitHub Pages is reported a
 Registry admission checks validate package identity, canonical Cargo paths, dependency registries, archive checksums, archive contents, reviewed package kind, standard package structure, assets, unsafe links, and source provenance.
 
 Developers do not declare a `[package.metadata.phoxal]` table.
-The publication command records the selected role in immutable review provenance, while root `component.yaml` or `service.yaml` definitions and Cargo target shape independently validate that role.
+The publication command records the selected role in immutable review provenance.
+Standard Cargo library-plus-binary target shape validates service implementations, while root `component.yaml` and preset `service.yaml` definitions validate domain-data packages.
 
 The archive and index are checked as the exact bytes that consumers will receive.
 
