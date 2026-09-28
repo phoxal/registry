@@ -8,8 +8,20 @@ Packages may contain libraries, binaries, build scripts, Protobuf files, or appl
 The registry does not impose Phoxal-specific archive paths or package shapes.
 Cargo checks the archive checksum recorded in the sparse index when it downloads a package.
 
-`cargo phoxal publish` can prepare a package submission for review.
-Publishing, ownership policy, and release automation are separate from the build-script API proof.
-The existing `config.json`, `margo-config.toml`, and Pages deployment serve the registry.
+`cargo phoxal publish` prepares a package submission as a pull request.
+
+Every submission pull request passes the `admission` workflow: archive
+checksum and manifest identity checks, immutability of published versions,
+owner authorization from `ownership/` on the base branch, and a readable
+source report against the previously published archive. Eligible
+submissions from enrolled owners merge automatically once the required
+checks pass; control-plane changes (workflows, ownership, configuration)
+always take the human review path and cannot be bundled with archives.
+
+Antivirus and malware analysis are deferred and reported as
+`NOT IMPLEMENTED / NOT SCANNED`; admission establishes publisher
+authorization and package integrity only. `cargo-audit` dependency
+advisory results from each archive's own `Cargo.lock` are reported
+alongside, without gating admission.
 
 See <https://phoxal.com> for public Phoxal documentation.
