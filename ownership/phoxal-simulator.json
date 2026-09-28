@@ -2,7 +2,8 @@
   "kind": "simulator",
   "name": "phoxal-simulator",
   "owners": [
-    "jBernavaPrah"
+    "jBernavaPrah",
+    "phoxal-release-bot[bot]"
   ],
   "reserved": true
 }

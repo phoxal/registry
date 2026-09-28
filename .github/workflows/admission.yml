@@ -1,16 +1,21 @@
 # Registry admission: integrity checks, ownership authorization, a readable
-# source report, and auto-merge enablement for eligible publication PRs.
+# source report, and verified merging for eligible publication PRs.
 #
-# The pull_request event runs THIS file from the base branch, so the policy
-# a submission is measured against is always the trusted one. Package
-# archives are parsed, never executed. Deferred antivirus and malware
-# analysis appear as visibly skipped placeholders that never claim a scan
-# passed.
+# Trust boundary: this workflow always runs the BASE branch's definition
+# through the pull_request_target event, and the validator it executes is
+# always the base branch's copy. The pull request tree is checked out as
+# untrusted DATA and parsed — never executed. Untrusted archive handling
+# carries no write credentials; only the merge step, which touches no
+# package bytes, holds write authority, and it merges exactly the head
+# that admission validated.
+#
+# Deferred antivirus and malware analysis appear as visibly skipped
+# placeholders that never claim a scan passed.
 name: admission
 
 on:
-  pull_request:
-    branches: [main]
+  pull_request_target:
+    types: [opened, synchronize, reopened]
 
 permissions:
   contents: read
@@ -32,23 +37,24 @@ jobs:
     outputs:
       eligible: ${{ steps.eligibility.outputs.eligible }}
     steps:
-      - name: Check out the submission head
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ env.HEAD_SHA }}
-          fetch-depth: 0
-          path: pr
-
-      - name: Check out the base branch policy tree
+      - name: Check out the trusted base policy tree
         uses: actions/checkout@v4
         with:
           ref: ${{ env.BASE_SHA }}
           path: base
 
-      - name: Validate admission
+      - name: Check out the submission head as data
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.HEAD_SHA }}
+          path: pr
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Validate admission with the base validator
         id: validate
         run: |
-          python3 pr/scripts/admission.py \
+          python3 base/scripts/admission.py \
             --repo pr \
             --base-root base \
             --base-ref "$BASE_SHA" \
@@ -84,16 +90,19 @@ jobs:
       - name: Dependency audit from published lockfiles
         continue-on-error: true
         run: |
+          set -euo pipefail
           mkdir -p audit
-          python3 - <<'PY' || true
+          python3 - <<'PY'
           import io, os, subprocess, tarfile
           from pathlib import Path
           changed = subprocess.run(
               ["git", "-C", "pr", "diff", "--name-only", "--diff-filter=ACMR",
                os.environ["BASE_SHA"], "HEAD"],
               capture_output=True, text=True, check=True).stdout.splitlines()
-          archives = [p for p in changed if p.startswith("crates/") and p.endswith(".crate")]
-          for index, relative in enumerate(archives):
+          found = 0
+          for index, relative in enumerate(
+              p for p in changed if p.startswith("crates/") and p.endswith(".crate")
+          ):
               blob = Path("pr", relative).read_bytes()
               with tarfile.open(fileobj=io.BytesIO(blob), mode="r:*") as archive:
                   member = next((m for m in archive.getmembers()
@@ -102,23 +111,31 @@ jobs:
                       print(f"{relative}: no Cargo.lock in the archive; audit coverage unavailable")
                       continue
                   Path(f"audit/{index}.lock").write_bytes(archive.extractfile(member).read())
+                  found += 1
+          Path("audit-count").write_text(str(found))
           PY
-          if compgen -G "audit/*.lock" > /dev/null; then
-            curl -sSfL https://github.com/rustsec/rustsec/releases/latest/download/cargo-audit-*-x86_64-unknown-linux-musl.tar.gz \
-              | tar xz --strip-components=1 -C "$HOME"
-            for lock in audit/*.lock; do
-              echo "== $lock"
-              "$HOME/cargo-audit" audit --file "$lock" || true
-            done
-          else
-            echo "No published lockfiles to audit; dependency audit coverage unavailable."
-          fi
           {
             echo "### Dependency audit"
-            echo "cargo-audit ran against every submitted archive's own Cargo.lock (findings"
-            echo "above, reported but not gating). Archives without a lockfile have no audit"
-            echo "coverage. This is a dependency advisory listing, not malware scanning:"
-            echo "antivirus/malware coverage remains NOT IMPLEMENTED / NOT SCANNED."
+            if [ "$(cat audit-count)" -gt 0 ]; then
+              echo "Installing cargo-audit 0.22.2 (established installer, pinned)."
+              curl -fsSL \
+                "https://api.github.com/repos/rustsec/rustsec/releases/tags/cargo-audit-v0.22.2" \
+                >/dev/null
+              cargo install cargo-audit --version 0.22.2 --locked
+              for lock in audit/*.lock; do
+                echo "== $lock"
+                cargo audit --file "$lock" || true
+              done
+              echo "cargo-audit 0.22.2 ran against every submitted archive that"
+              echo "carries its own Cargo.lock; findings are reported above and do"
+              echo "not gate admission. This is a dependency advisory listing, not"
+              echo "malware scanning: antivirus/malware coverage remains"
+              echo "NOT IMPLEMENTED / NOT SCANNED."
+            else
+              echo "No submitted archive carries a Cargo.lock; dependency audit"
+              echo "coverage was unavailable for this pull request (nothing ran)."
+              echo "Antivirus/malware coverage remains NOT IMPLEMENTED / NOT SCANNED."
+            fi
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload the source report
@@ -130,19 +147,23 @@ jobs:
             report.md
           if-no-files-found: error
 
-  request-auto-merge:
-    name: request-auto-merge
+  merge-eligible:
+    name: merge eligible submission
     needs: admission
     if: needs.admission.outputs.eligible == 'true'
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
-      contents: read
+      contents: write
     steps:
-      - name: Enable auto-merge for this eligible submission
+      - name: Wait for the required checks on this exact head
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh pr checks "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --watch --interval 15
+      - name: Merge exactly the validated head
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh pr merge "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --auto --squash \
-            --subject "${HEAD_SHA:0:10} verified registry publication"
-          echo "Auto-merge requested; GitHub merges once the required checks pass on this head."
+          gh pr merge "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --squash \
+            --match-head-commit "$HEAD_SHA" \
+            --subject "verified registry publication ($HEAD_SHA)"
