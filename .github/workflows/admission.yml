@@ -156,10 +156,23 @@ jobs:
       pull-requests: write
       contents: write
     steps:
-      - name: Wait for the required checks on this exact head
+      - name: Wait for the admission check on this exact head
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh pr checks "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --watch --interval 15
+        run: |
+          # Poll only the admission check: a --watch over every check
+          # would wait for this very job and deadlock.
+          for _ in $(seq 1 60); do
+            state="$(gh api "repos/$GITHUB_REPOSITORY/commits/$HEAD_SHA/check-runs"               --jq '[.check_runs[] | select(.name == "admission")] | first(.[]) | .status + "/" + (.conclusion // "")')"
+            echo "admission check: $state"
+            case "$state" in
+              completed/success) exit 0 ;;
+              completed/*) echo "the admission check did not pass: $state" >&2; exit 1 ;;
+            esac
+            sleep 15
+          done
+          echo "the admission check did not complete within 15 minutes" >&2
+          exit 1
       - name: Merge exactly the validated head
         env:
           GH_TOKEN: ${{ github.token }}
