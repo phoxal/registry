@@ -195,6 +195,25 @@ def extract_manifest(
             dependencies.setdefault(section, []).append(
                 {"name": dep_name, "req": requirement if isinstance(requirement, str) else None}
             )
+    # Cargo's normalized manifest places target-specific dependencies
+    # under `[target."<cfg>".dependencies]` (and the dev/build variants).
+    # They are ordinary declarations: an index entry recorded for one
+    # must match here, not count as undeclared.
+    targets = manifest.get("target", {})
+    if not isinstance(targets, dict):
+        raise Finding(f"{label}: [target] is not a table")
+    for target_spec, target_table in targets.items():
+        if not isinstance(target_table, dict):
+            raise Finding(f"{label}: [target.{target_spec!r}] is not a table")
+        for section in ("dependencies", "dev-dependencies", "build-dependencies"):
+            table = target_table.get(section, {})
+            if not isinstance(table, dict):
+                raise Finding(f"{label}: [target.{target_spec!r}.{section}] is not a table")
+            for dep_name, spec in table.items():
+                requirement = spec if isinstance(spec, str) else spec.get("version")
+                dependencies.setdefault(section, []).append(
+                    {"name": dep_name, "req": requirement if isinstance(requirement, str) else None}
+                )
     return package, dependencies
 
 

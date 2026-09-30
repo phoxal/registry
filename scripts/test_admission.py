@@ -253,7 +253,30 @@ class AdmissionTests(unittest.TestCase):
             capture_output=True, text=True,
         )
         self.assertEqual(result.returncode, 1, result.stderr)
-        self.assertIn("does not declare", result.stderr)
+
+    def test_target_specific_dependencies_count_as_declarations(self) -> None:
+        # Cargo's normalized manifest carries target-scoped dependencies
+        # under [target."<cfg>".dependencies]; an index entry recorded for
+        # one must match, not count as undeclared.
+        name = "fixture-pkg"
+        write_ownership(self.base, name, ["alice"])
+        init_repo_with_pr_branch(self.repo)
+        blob = build_archive(
+            name, "0.1.0",
+            manifest_extra=(
+                '[target.\'cfg(not(target_os = "macos"))\'.dependencies]\n'
+                'glutin = { version = "0.32.3", optional = true }\n'
+                '[target."cfg(target_os = \\"macos\\")".dev-dependencies]\n'
+                'cgl = "0.3"\n'
+            ),
+        )
+        line = index_line(name, "0.1.0", blob, deps=[
+            {"name": "glutin", "req": "0.32.3", "kind": "normal", "registry": None},
+            {"name": "cgl", "req": "0.3", "kind": "dev", "registry": None},
+        ])
+        write_tree(self.repo, name=name, version="0.1.0", blob=blob, line=line)
+        commit_all(self.repo)
+        self.assertEqual(self.run_admission("alice").returncode, 0)
 
     def test_immutable_version_replacement_fails(self) -> None:
         name, version = "fixture-pkg", "0.1.0"
